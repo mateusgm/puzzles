@@ -87,7 +87,7 @@ models = [
 
 for m in models:
     evaluate(X_enc, y, m)
-    
+
 evaluate(X_enc, y, ensemble.VotingClassifier(
     estimators=[ ( m.__class__.__name__, m ) for m in models ],
     voting='soft'

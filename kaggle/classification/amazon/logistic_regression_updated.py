@@ -3,7 +3,7 @@ __email__ = 'bensolucky@gmail.com'
 __date__ = '07-16-2013'
 
 """
-This program is based on code submitted by Miroslaw Horbal to the Kaggle 
+This program is based on code submitted by Miroslaw Horbal to the Kaggle
 forums, which was itself based on an earlier submission from Paul Doan.
 My thanks to both.
 """
@@ -24,9 +24,9 @@ import sys
 SEED = int(sys.argv[2])
 
 def group_data(data, degree=3, hash=hash):
-    """ 
+    """
     numpy.array -> numpy.array
-    
+
     Groups all columns of data into all combinations of triples
     """
     new_data = []
@@ -44,7 +44,7 @@ def OneHotEncoder(data, keymap=None):
      """
      OneHotEncoder takes data matrix with categorical columns and
      converts it to a sparse binary matrix.
-     
+
      Returns sparse binary matrix and keymap mapping categories to indicies.
      If a keymap is supplied on input it will be used instead of creating one
      and any categories appearing in the data that are not in the keymap are
@@ -84,7 +84,7 @@ def cv_loop(X, y, model, N):
     mean_auc = 0.
     for i in range(N):
         X_train, X_cv, y_train, y_cv = cross_validation.train_test_split(
-                                       X, y, test_size=1.0/float(N), 
+                                       X, y, test_size=1.0/float(N),
                                        random_state = i*SEED)
         model.fit(X_train, y_train)
         preds = model.predict_proba(X_cv)[:,1]
@@ -92,7 +92,7 @@ def cv_loop(X, y, model, N):
         #print "AUC (fold %d/%d): %f" % (i + 1, N, auc)
         mean_auc += auc
     return mean_auc/N
-    
+
 learner = sys.argv[1]
 print "Reading dataset..."
 train_data = pd.read_csv('train.csv')
@@ -110,7 +110,7 @@ for col in range(len(all_data[0,:])):
     relabler.fit(all_data[:, col])
     all_data[:, col] = relabler.transform(all_data[:, col])
 ########################## 2nd order features ################################
-dp = group_data(all_data, degree=2) 
+dp = group_data(all_data, degree=2)
 for col in range(len(dp[0,:])):
     relabler.fit(dp[:, col])
     dp[:, col] = relabler.transform(dp[:, col])
@@ -201,16 +201,16 @@ X_test_3 = dt[num_train:]
 X_train_all = np.hstack((X, X_2, X_3))
 X_test_all = np.hstack((X_test, X_test_2, X_test_3))
 num_features = X_train_all.shape[1]
-    
+
 if learner == 'NB':
     model = naive_bayes.BernoulliNB(alpha=0.03)
 else:
     model = linear_model.LogisticRegression(class_weight='auto', penalty='l2')
-    
+
 # Xts holds one hot encodings for each individual feature in memory
-# speeding up feature selection 
+# speeding up feature selection
 Xts = [OneHotEncoder(X_train_all[:,[i]])[0] for i in range(num_features)]
-    
+
 print "Performing greedy feature selection..."
 score_hist = []
 N = 10
@@ -228,7 +228,7 @@ while len(score_hist) < 2 or score_hist[-1][0] > score_hist[-2][0]:
     good_features.add(sorted(scores)[-1][1])
     score_hist.append(sorted(scores)[-1])
     print "Current features: %s" % sorted(list(good_features))
-    
+
 # Remove last added feature from good_features
 good_features.remove(score_hist[-1][1])
 good_features = sorted(list(good_features))
@@ -237,7 +237,7 @@ gf = open("feats" + submit, 'w')
 print >>gf, good_features
 gf.close()
 print len(good_features), " features"
-    
+
 print "Performing hyperparameter selection..."
 # Hyperparameter selection loop
 score_hist = []
@@ -256,13 +256,13 @@ for C in Cvals:
     print "C: %f Mean AUC: %f" %(C, score)
 bestC = sorted(score_hist)[-1][1]
 print "Best C value: %f" % (bestC)
-    
+
 print "Performing One Hot Encoding on entire dataset..."
 Xt = np.vstack((X_train_all[:,good_features], X_test_all[:,good_features]))
 Xt, keymap = OneHotEncoder(Xt)
 X_train = Xt[:num_train]
 X_test = Xt[num_train:]
-    
+
 if learner == 'NB':
     model.alpha = bestC
 else:

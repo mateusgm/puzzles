@@ -4,9 +4,9 @@ import re
 
 class Solution:
     def myAtoi(self, s: str) -> int:
-        
+
         bounds = (-2**31, 2**31 - 1)
-        
+
         sign   = 0
         number = []
 
@@ -21,12 +21,12 @@ class Solution:
                 number.append(int(c))
             else:
                 break
-        
+
         if sign == 0:
             sign = 1
 
         total = 0
         for i,n in enumerate(number[::-1]):
             total += sign * n * 10**i
-        
+
         return max(bounds[0], min(total, bounds[1]))

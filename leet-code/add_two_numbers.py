@@ -1,7 +1,7 @@
 # https://leetcode.com/problems/add-two-numbers/
 
 class Solution(object):
-    
+
     def getNumber(self, l1):
         total = 0
         digit = 0
@@ -11,7 +11,7 @@ class Solution(object):
             digit += 1
             node   = node.next
         return total
-    
+
     def createList(self, n):
         val       = n % 10
         broken_n  = int(n / 10)
@@ -22,14 +22,14 @@ class Solution(object):
 
         return ListNode(val=val, next=next_node)
 
-        
+
     def addTwoNumbersEasy(self, l1, l2):
         """
         :type l1: ListNode
         :type l2: ListNode
         :rtype: ListNode
         """
-        
+
         return self.createList( self.getNumber(l1) + self.getNumber(l2) )
 
     def addTwoNumbers(self, l1, l2):
@@ -51,11 +51,11 @@ class Solution(object):
             if i2 is not None:
                 v2 = i2.val
                 i2 = i2.next
-            
+
             digit = v1 + v2 + carry
             carry = int(digit / 10)
 
             curr.next = ListNode(digit % 10)
             curr  = curr.next
-        
+
         return head.next

@@ -7,11 +7,11 @@ class Solution(object):
         :type target: int
         :rtype: List[int]
         """
-        
+
         nums, inds = zip(*sorted(zip(nums, range(0,len(nums)))))
         i = 0
         j = len(nums)-1
-        
+
         for _ in inds:
             total = nums[i] + nums[j]
             if total == target:
@@ -19,5 +19,4 @@ class Solution(object):
             elif total < target:
                 i += 1
             else:
-                j -= 1        
-        
+                j -= 1

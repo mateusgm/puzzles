@@ -25,12 +25,12 @@ import multiprocessing
 import random
 
 def group_data(data, degree=3, cutoff = 1, hash=hash):
-    """ 
+    """
     numpy.array -> numpy.array
-    
+
     Groups all columns of data into all combinations of triples
     """
-    
+
     new_data = []
     m,n = data.shape
     for indexes in combinations(range(n), degree):
@@ -54,7 +54,7 @@ def OneHotEncoder(data, keymap=None):
      """
      OneHotEncoder takes data matrix with categorical columns and
      converts it to a sparse binary matrix.
-     
+
      Returns sparse binary matrix and keymap mapping categories to indexes.
      If a keymap is supplied on input it will be used instead of creating one
      and any categories appearing in the data that are not in the keymap are
@@ -95,42 +95,42 @@ def evaluation(y_true, y_pred):
 def validation_worker(args):
     X, y, model, j, SEED = args
     X_train, X_cv, y_train, y_cv = cross_validation.train_test_split(
-                                       X, y, test_size=.15, 
+                                       X, y, test_size=.15,
                                        random_state = j*SEED)
     model.fit(X_train, y_train)
     preds = model.predict_proba(X_cv)[:,1]
     auc = metrics.auc_score(y_cv, preds)
-    return auc  
+    return auc
 
-def cv_loop(X, y, model, N, pool, SEED): 
+def cv_loop(X, y, model, N, pool, SEED):
     instructions = [(X, y, model, i, SEED) for i in range(N)]
-    pooled_auc = pool.map(validation_worker, instructions)        
+    pooled_auc = pool.map(validation_worker, instructions)
     return np.median(np.array(pooled_auc))
-    
-def main(train='train.csv', test='test2.csv', submit='submission', initial_solution=list(), finalize=False):    
+
+def main(train='train.csv', test='test2.csv', submit='submission', initial_solution=list(), finalize=False):
     global SEED
     global N_JOBS
-    
+
     SEED = random.randint(0,2500)
     print "Random seed is:",SEED
     N_JOBS = max(1,min(10, multiprocessing.cpu_count()-1))
     N = 10 # Cross validation parameter
     small_change = 0.00005 # set the smallest acceptable change in the model performance
-    
+
     print "Reading dataset..."
     train_data = pd.read_csv(train)
     test_data = pd.read_csv(test)
     all_data = np.vstack((train_data.ix[:,1:-1], test_data.ix[:,1:-1]))
 
     num_train = np.shape(train_data)[0]
-    
+
     # Transform data
     print "Transforming data..."
-    dp1 = group_data(all_data, degree=2, cutoff=2) 
+    dp1 = group_data(all_data, degree=2, cutoff=2)
     dt1 = group_data(all_data, degree=3, cutoff=2)
     dz1 = group_data(all_data, degree=4, cutoff=2)
     dp2 = group_data(all_data, degree=5, cutoff=2)
-    dp3 = group_data(all_data, degree=6, cutoff=2) 
+    dp3 = group_data(all_data, degree=6, cutoff=2)
 
     y = np.array(train_data.ACTION)
     X = all_data[:num_train]
@@ -150,25 +150,25 @@ def main(train='train.csv', test='test2.csv', submit='submission', initial_solut
     X_train_all = np.hstack((X, X_2, X_3, X_4, X_5, X_6))
     X_test_all = np.hstack((X_test, X_test_2, X_test_3, X_test_4, X_test_5, X_test_6))
     num_features = X_train_all.shape[1]
-    
+
     model = linear_model.LogisticRegression()
-    
+
     # Xts holds one hot encodings for each individual feature in memory
-    # speeding up feature selection 
+    # speeding up feature selection
     Xts = [OneHotEncoder(X_train_all[:,[i]])[0] for i in range(num_features)]
-    
+
     print "Performing greedy feature selection..."
-    
+
     p = multiprocessing.Pool(N_JOBS)
     good_features = set(initial_solution)
-    
+
     if len(good_features) == 0:
         score_hist = []
     else:
         feats = list(good_features)
         Xt = sparse.hstack([Xts[j] for j in feats]).tocsr()
-        score_hist = [(cv_loop(Xt, y, model, N, p, SEED),-1)] 
-    
+        score_hist = [(cv_loop(Xt, y, model, N, p, SEED),-1)]
+
     if finalize:
         good_features = initial_solution
         print "Final features: %s" % sorted(list(good_features))
@@ -191,7 +191,7 @@ def main(train='train.csv', test='test2.csv', submit='submission', initial_solut
             print "Current features: %s" % sorted(list(good_features))
             if len(good_features) > 2 :
                 print "Pruning..."
-                to_be_removed = None 
+                to_be_removed = None
                 gain = 0
                 baseline = score_hist[-1][0]
                 for f,target in enumerate(good_features):
@@ -207,13 +207,13 @@ def main(train='train.csv', test='test2.csv', submit='submission', initial_solut
                     good_features.discard(to_be_removed)
                     score_hist.append((baseline+gain,target*-1))
                     print "Current features: %s" % sorted(list(good_features))
-        
+
         # Remove last added feature from good_features
         # good_features.remove(score_hist[-1][1])
         good_features = sorted(list(good_features))
         print "Selected features %s" % good_features
         print "History:",score_hist
-      
+
     print "Performing hyperparameter selection..."
     # Hyperparameter selection loop
     score_hist = []
@@ -226,30 +226,30 @@ def main(train='train.csv', test='test2.csv', submit='submission', initial_solut
         print "C: %f Mean AUC: %f" %(C, score)
     bestC = sorted(score_hist)[-1][1]
     bestscore = sorted(score_hist)[-1][0]
-    print "Best C value: %f" % (bestC)   
-    
-    model.C = bestC # Specifies the best strength of the regularization. 
-    
+    print "Best C value: %f" % (bestC)
+
+    model.C = bestC # Specifies the best strength of the regularization.
+
     print "Performing One Hot Encoding on entire dataset..."
     Xt = np.vstack((X_train_all[:,good_features], X_test_all[:,good_features]))
     Xt, keymap = OneHotEncoder(Xt)
     X_train = Xt[:num_train]
     X_test = Xt[num_train:]
-    
+
     print "Training full model..."
     model.fit(X_train, y)
-    
+
     print "Making prediction and saving results..."
     preds = model.predict_proba(X_test)[:,1]
     create_test_submission(submit+str(bestscore)+'.csv', preds)
-    p.terminate() 
-    
+    p.terminate()
+
 if __name__ == "__main__":
     args = { 'train':  'train.csv',
              'test':   'test.csv',
-             'submit': 'logistic_regression_pred_submission_', 
+             'submit': 'logistic_regression_pred_submission_',
              'initial_solution': [],
              'finalize': False
              }
     main(**args)
-    
+

@@ -17,13 +17,12 @@ class Solution(object):
             blast = last
             if i != len(nums1) and (j == len(nums2) or nums1[i] < nums2[j]):
                 last = nums1[i]
-                i   += 1 
+                i   += 1
             else:
                 last = nums2[j]
                 j += 1
             print(i,j, last, blast)
-        
+
         if mid*2 == n:
             return (last+blast)/2.0
         return last
-            

@@ -37,17 +37,17 @@ competitions.each do |x|
   doc  = open(x[:link], PARAMS).read
   html = Nokogiri::HTML( doc )
   x[:forum] = number(html.css('#compside-discussions h1').first.text) rescue ''
- 
+
   id   = doc.scan(/competitionId = (\d+)/).flatten.first
-  doc = open( "#{KADDLE}/c/#{id}/scripts/hot/widget", PARAMS ) rescue false 
+  doc = open( "#{KADDLE}/c/#{id}/scripts/hot/widget", PARAMS ) rescue false
   if doc
     html = Nokogiri::HTML( doc )
     x[:scripts] = number html.css('#compside-scripts h1').first.text
     x[:best_voted] = html.css('#compside-scripts .script-meta').map { |x| x.text.scan(/(\d+) Votes/).first }.flatten.map(&:to_i)
     x[:votes] = x[:best_voted].reduce(0, :+)
   end
- 
-  doc = open(x[:link] + '/forums', PARAMS ) rescue false 
+
+  doc = open(x[:link] + '/forums', PARAMS ) rescue false
   if doc
     html = Nokogiri::HTML( doc )
     n_pages = html.css('#topiclist .forum-pages a')[-2].text.to_i rescue 1
@@ -67,7 +67,7 @@ competitions.each do |x|
     x[:replies] = replies.map { |x| x[:replies] }.reduce(0, :+)
   end
 
-  CSV.open('competitions.csv', 'ab') do |csv| 
+  CSV.open('competitions.csv', 'ab') do |csv|
     csv << [ x[:name], x[:link], x[:prize], x[:contestants], x[:forum], x[:replies], x[:best_replied].to_s, x[:best_urls].to_s, x[:scripts], x[:votes], x[:best_voted].to_s ]
   end
 end
